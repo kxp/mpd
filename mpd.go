@@ -72,6 +72,7 @@ type MPD struct {
 	PublishTime                *string `xml:"publishTime,attr"`
 	Profiles                   string  `xml:"profiles,attr"`
 	Period                     *Period `xml:"Period,omitempty"`
+	BaseURL			   *string `xml:"BaseURL,omitempty"`
 }
 
 // Do not try to use encoding.TextMarshaler and encoding.TextUnmarshaler:
@@ -143,6 +144,7 @@ type Representation struct {
 	Bandwidth          *uint64          `xml:"bandwidth,attr"`
 	AudioSamplingRate  *string          `xml:"audioSamplingRate,attr"`
 	Codecs             *string          `xml:"codecs,attr"`
+	BaseURL		   *string          `xml:"BaseURL,omitempty"`
 	ContentProtections []Descriptor     `xml:"ContentProtection,omitempty"`
 	SegmentTemplate    *SegmentTemplate `xml:"SegmentTemplate,omitempty"`
 }
