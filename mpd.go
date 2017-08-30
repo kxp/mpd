@@ -18,18 +18,18 @@ var emptyElementRE = regexp.MustCompile(`></[A-Za-z]+>`)
 
 // ConditionalUint (ConditionalUintType) defined in XSD as a union of unsignedInt and boolean.
 type ConditionalUint struct {
-	u *uint64
-	b *bool
+	U *uint64
+	B *bool
 }
 
 // MarshalXMLAttr encodes ConditionalUint.
 func (c ConditionalUint) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
-	if c.u != nil {
-		return xml.Attr{Name: name, Value: strconv.FormatUint(*c.u, 10)}, nil
+	if c.U != nil {
+		return xml.Attr{Name: name, Value: strconv.FormatUint(*c.U, 10)}, nil
 	}
 
-	if c.b != nil {
-		return xml.Attr{Name: name, Value: strconv.FormatBool(*c.b)}, nil
+	if c.B != nil {
+		return xml.Attr{Name: name, Value: strconv.FormatBool(*c.B)}, nil
 	}
 
 	// both are nil - no attribute, client will threat it like "false"
@@ -40,13 +40,13 @@ func (c ConditionalUint) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
 func (c *ConditionalUint) UnmarshalXMLAttr(attr xml.Attr) error {
 	u, err := strconv.ParseUint(attr.Value, 10, 64)
 	if err == nil {
-		c.u = &u
+		c.U = &u
 		return nil
 	}
 
 	b, err := strconv.ParseBool(attr.Value)
 	if err == nil {
-		c.b = &b
+		c.B = &b
 		return nil
 	}
 
@@ -61,19 +61,35 @@ var (
 
 // MPD represents root XML element.
 type MPD struct {
-	XMLNS                      *string `xml:"xmlns,attr"`
-	Type                       *string `xml:"type,attr"`
-	MinimumUpdatePeriod        *string `xml:"minimumUpdatePeriod,attr"`
-	AvailabilityStartTime      *string `xml:"availabilityStartTime,attr"`
-	MediaPresentationDuration  *string `xml:"mediaPresentationDuration,attr"`
-	MinBufferTime              *string `xml:"minBufferTime,attr"`
-	SuggestedPresentationDelay *string `xml:"suggestedPresentationDelay,attr"`
-	TimeShiftBufferDepth       *string `xml:"timeShiftBufferDepth,attr"`
-	PublishTime                *string `xml:"publishTime,attr"`
-	Profiles                   string  `xml:"profiles,attr"`
-	Period                     *Period `xml:"Period,omitempty"`
-	BaseURL			   *string `xml:"BaseURL,omitempty"`
+	XMLNS                      *string             `xml:"xmlns,attr"`
+	ID                         *string             `xml:"id,attr"`
+	Type                       *string             `xml:"type,attr"`
+	MinimumUpdatePeriod        *string             `xml:"minimumUpdatePeriod,attr"`
+	AvailabilityStartTime      *string             `xml:"availabilityStartTime,attr"`
+	MediaPresentationDuration  *string             `xml:"mediaPresentationDuration,attr"`
+	MinBufferTime              *string             `xml:"minBufferTime,attr"`
+	SuggestedPresentationDelay *string             `xml:"suggestedPresentationDelay,attr"`
+	TimeShiftBufferDepth       *string             `xml:"timeShiftBufferDepth,attr"`
+	PublishTime                *string             `xml:"publishTime,attr"`
+	Profiles                   string              `xml:"profiles,attr"`
+	MaxSegmentDuration         *string             `xml:"maxSegmentDuration,attr"`
+	Period                     *Period             `xml:"Period,omitempty"`
+	BaseURL                    *string             `xml:"BaseURL,omitempty"`
+	ProgramInformation         *ProgramInformation `xml:"ProgramInformation,omitempty"`
+	SupplementalProperties     []Descriptor        `xml:"SupplementalProperty,omitempty"`
 }
+
+// Values for MPD Type attribute
+const (
+	Static  = "static"
+	Dynamic = "dynamic"
+)
+
+// Values for ContentComponent contentType attribute
+const (
+	Video = "video"
+	Audio = "audio"
+)
 
 // Do not try to use encoding.TextMarshaler and encoding.TextUnmarshaler:
 // https://github.com/golang/go/issues/6859#issuecomment-118890463
@@ -114,45 +130,100 @@ func (m *MPD) Decode(b []byte) error {
 	return xml.Unmarshal(b, m)
 }
 
+// ProgramInformation represents XSD's ProgramInformationType
+type ProgramInformation struct {
+	Lang               *string `xml:"lang,attr"`
+	MoreInformationURL *string `xml:"moreInformationURL,attr"`
+	Title              *string `xml:"Title,omitempty"`
+	Source             *string `xml:"Source,omitempty"`
+	Copyright          *string `xml:"Copyright,omitempty"`
+}
+
 // Period represents XSD's PeriodType.
 type Period struct {
-	Start          *string          `xml:"start,attr"`
-	ID             *string          `xml:"id,attr"`
-	Duration       *string          `xml:"duration,attr"`
-	AdaptationSets []*AdaptationSet `xml:"AdaptationSet,omitempty"`
+	Start                  *string          `xml:"start,attr"`
+	ID                     *string          `xml:"id,attr"`
+	Duration               *string          `xml:"duration,attr"`
+	AdaptationSets         []*AdaptationSet `xml:"AdaptationSet,omitempty"`
+	BaseURL                *string          `xml:"BaseURL,omitempty"`
+	AssetIdentifiers       []Descriptor     `xml:"AssetIdentifier,omitempty"`
+	SupplementalProperties []Descriptor     `xml:"SupplementalProperty,omitempty"`
+}
+
+// ContentComponent represents XSD's ContentComponentType.
+type ContentComponent struct {
+	ID              *string      `xml:"id,attr"`
+	Lang            *string      `xml:"lang,attr"`
+	ContentType     *string      `xml:"contentType,attr"`
+	Par             *string      `xml:"par,attr"`
+	Accessibilities []Descriptor `xml:"Accessibility,omitempty"`
+	Roles           []Descriptor `xml:"Role,omitempty"`
+	Ratings         []Descriptor `xml:"Rating,omitempty"`
+	Viewpoints      []Descriptor `xml:"Viewpoint,omitempty"`
 }
 
 // AdaptationSet represents XSD's AdaptationSetType.
 type AdaptationSet struct {
-	MimeType                string           `xml:"mimeType,attr"`
-	SegmentAlignment        ConditionalUint  `xml:"segmentAlignment,attr"`
-	SubsegmentAlignment     ConditionalUint  `xml:"subsegmentAlignment,attr"`
-	StartWithSAP            *uint64          `xml:"startWithSAP,attr"`
-	SubsegmentStartsWithSAP *uint64          `xml:"subsegmentStartsWithSAP,attr"`
-	BitstreamSwitching      *bool            `xml:"bitstreamSwitching,attr"`
-	Lang                    *string          `xml:"lang,attr"`
-	ContentProtections      []Descriptor     `xml:"ContentProtection,omitempty"`
-	Representations         []Representation `xml:"Representation,omitempty"`
+	ID                         *string            `xml:"id,attr"`
+	MimeType                   string             `xml:"mimeType,attr"`
+	SegmentAlignment           ConditionalUint    `xml:"segmentAlignment,attr"`
+	SubsegmentAlignment        ConditionalUint    `xml:"subsegmentAlignment,attr"`
+	StartWithSAP               *uint64            `xml:"startWithSAP,attr"`
+	SubsegmentStartsWithSAP    *uint64            `xml:"subsegmentStartsWithSAP,attr"`
+	BitstreamSwitching         *bool              `xml:"bitstreamSwitching,attr"`
+	Lang                       *string            `xml:"lang,attr"`
+	Width                      *string            `xml:"width,attr"`
+	Height                     *string            `xml:"height,attr"`
+	MaxWidth                   *uint64            `xml:"maxWidth,attr"`
+	MaxHeight                  *uint64            `xml:"maxHeight,attr"`
+	MaxFrameRate               *string            `xml:"maxFrameRate,attr"`
+	FrameRate                  *string            `xml:"frameRate,attr"`
+	Sar                        *string            `xml:"sar,attr"`
+	Codecs                     *string            `xml:"codecs,attr"`
+	AudioSamplingRate          *string            `xml:"audioSamplingRate,attr"`
+	ContentProtections         []Descriptor       `xml:"ContentProtection,omitempty"`
+	Representations            []Representation   `xml:"Representation,omitempty"`
+	Roles                      []Descriptor       `xml:"Role,omitempty"`
+	ContentComponents          []ContentComponent `xml:"ContentComponent,omitempty"`
+	BaseURL                    *string            `xml:"BaseURL,omitempty"`
+	SegmentTemplate            *SegmentTemplate   `xml:"SegmentTemplate,omitempty"`
+	AudioChannelConfigurations []Descriptor       `xml:"AudioChannelConfiguration,omitempty"`
+	EssentialProperties        []Descriptor       `xml:"EssentialProperty,omitempty"`
+	SupplementalProperties     []Descriptor       `xml:"SupplementalProperty,omitempty"`
+}
+
+// SubRepresentation represents the XSD's SubRepresentationType.
+type SubRepresentation struct {
+	Bandwidth                  *uint64      `xml:"bandwidth,attr"`
+	ContentComponent           string       `xml:"ContentComponent,omitempty"`
+	AudioSamplingRate          *string      `xml:"audioSamplingRate,attr"`
+	Codecs                     *string      `xml:"codecs,attr"`
+	AudioChannelConfigurations []Descriptor `xml:"AudioChannelConfiguration,omitempty"`
 }
 
 // Representation represents XSD's RepresentationType.
 type Representation struct {
-	ID                 *string          `xml:"id,attr"`
-	Width              *uint64          `xml:"width,attr"`
-	Height             *uint64          `xml:"height,attr"`
-	FrameRate          *string          `xml:"frameRate,attr"`
-	Bandwidth          *uint64          `xml:"bandwidth,attr"`
-	AudioSamplingRate  *string          `xml:"audioSamplingRate,attr"`
-	Codecs             *string          `xml:"codecs,attr"`
-	BaseURL		   *string          `xml:"BaseURL,omitempty"`
-	ContentProtections []Descriptor     `xml:"ContentProtection,omitempty"`
-	SegmentTemplate    *SegmentTemplate `xml:"SegmentTemplate,omitempty"`
+	ID                         *string             `xml:"id,attr"`
+	Width                      *uint64             `xml:"width,attr"`
+	Height                     *uint64             `xml:"height,attr"`
+	FrameRate                  *string             `xml:"frameRate,attr"`
+	Bandwidth                  *uint64             `xml:"bandwidth,attr"`
+	AudioSamplingRate          *string             `xml:"audioSamplingRate,attr"`
+	Codecs                     *string             `xml:"codecs,attr"`
+	Sar                        *string             `xml:"sar,attr"`
+	BaseURL                    *string             `xml:"BaseURL,omitempty"`
+	ContentProtections         []Descriptor        `xml:"ContentProtection,omitempty"`
+	SegmentTemplate            *SegmentTemplate    `xml:"SegmentTemplate,omitempty"`
+	SubRepresentations         []SubRepresentation `xml:"SubRepresentation,omitempty"`
+	AudioChannelConfigurations []Descriptor        `xml:"AudioChannelConfiguration,omitempty"`
+	EssentialProperties        []Descriptor        `xml:"EssentialProperty,omitempty"`
+	SupplementalProperties     []Descriptor        `xml:"SupplementalProperty,omitempty"`
 }
 
 // Descriptor represents XSD's DescriptorType.
 type Descriptor struct {
-	SchemeIDURI *string `xml:"schemeIdUri,attr"`
-	Value       *string `xml:"value,attr"`
+	SchemeIDURI string `xml:"schemeIdUri,attr,omitempty"`
+	Value       string `xml:"value,attr,omitempty"`
 }
 
 // SegmentTemplate represents XSD's SegmentTemplateType.
@@ -169,5 +240,6 @@ type SegmentTemplate struct {
 type SegmentTimelineS struct {
 	T *uint64 `xml:"t,attr"`
 	D uint64  `xml:"d,attr"`
-	R *int64  `xml:"r,attr"`
+	R *uint64 `xml:"r,attr"`
+	N *uint64 `xml:"n,attr"`
 }
