@@ -73,7 +73,7 @@ type MPD struct {
 	PublishTime                *string             `xml:"publishTime,attr"`
 	Profiles                   string              `xml:"profiles,attr"`
 	MaxSegmentDuration         *string             `xml:"maxSegmentDuration,attr"`
-	Period                     *Period             `xml:"Period,omitempty"`
+	Period                     []Period             `xml:"Period,omitempty"`
 	BaseURL                    *string             `xml:"BaseURL,omitempty"`
 	ProgramInformation         *ProgramInformation `xml:"ProgramInformation,omitempty"`
 	SupplementalProperties     []Descriptor        `xml:"SupplementalProperty,omitempty"`
