@@ -73,7 +73,7 @@ type MPD struct {
 	PublishTime                *string             `xml:"publishTime,attr"`
 	Profiles                   string              `xml:"profiles,attr"`
 	MaxSegmentDuration         *string             `xml:"maxSegmentDuration,attr"`
-	Period                     []Period             `xml:"Period,omitempty"`
+	Period                     []Period            `xml:"Period,omitempty"`
 	BaseURL                    *string             `xml:"BaseURL,omitempty"`
 	ProgramInformation         *ProgramInformation `xml:"ProgramInformation,omitempty"`
 	SupplementalProperties     []Descriptor        `xml:"SupplementalProperty,omitempty"`
@@ -212,6 +212,7 @@ type Representation struct {
 	Codecs                     *string             `xml:"codecs,attr"`
 	Sar                        *string             `xml:"sar,attr"`
 	BaseURL                    *string             `xml:"BaseURL,omitempty"`
+	MimeType                   string              `xml:"mimeType,attr"`
 	ContentProtections         []Descriptor        `xml:"ContentProtection,omitempty"`
 	SegmentTemplate            *SegmentTemplate    `xml:"SegmentTemplate,omitempty"`
 	SubRepresentations         []SubRepresentation `xml:"SubRepresentation,omitempty"`
